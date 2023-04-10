@@ -187,7 +187,7 @@ window.addEventListener("load", () => {
         "img/tabs/elite.jpg",
         "elite",
         'Меню “Премиум”',
-        'В меню “Премиум” мы  всячески полезно   используем не только красивый дизайн упаковки, но и качественное исполнение блюд. Красная рыба, морепродукты, фрукты - ресторанное меню без похода в ресторан!',
+        'В меню “Премиум” мы    твою мать шлюху    используем не только красивый дизайн упаковки, но и качественное исполнение блюд. Красная рыба, морепродукты, фрукты - ресторанное меню без похода в ресторан!',
         20,
         '.menu .container',
         'menu__item'
@@ -209,7 +209,7 @@ window.addEventListener("load", () => {
 
     const message = {
         loading: 'img/form/spinner.svg',
-        succes: 'Спасибо! Скоро мы с вами свяжемся',
+        succes: 'Спасибо! Скоро мы c вами свяжемся',
         failrue: 'Что-то пошло не так...'
     };
     
@@ -229,35 +229,33 @@ window.addEventListener("load", () => {
             `;
             form.insertAdjacentElement('afterend', statusMessage);                                //добавляю ответ к форме
 
-            const request = new XMLHttpRequest();
-            request.open('POST', 'server.php');
-
-           // request.setRequestHeader('Content-type', 'multipart/form-data'); если используем FormData то заголовок не нужен
-            request.setRequestHeader('Content-type', 'application/json');        
             
             const formData = new FormData (form);
 
             const object = {};
-
-            formData.forEach( (value,key) => {
+            formData.forEach( (value,key) => {                 //перевод в formdata в json
                 object[key] = value;
             });
 
-            const json = JSON.stringify(object);
-
-            request.send(json);
-
-
-            request.addEventListener('load', () => {
-                if (request.status === 200) {
-                    console.log(request.response);
-                    showThanksModal(message.succes);
-                    form.reset();
-                    statusMessage.remove();                    
-                } else {
-                    showThanksModal(message.failrue);
-                }
-            });
+            fetch('server.php', {
+                method: 'POST',
+                header: {
+                    'Content-type': 'application/json'
+                },
+                body: JSON.stringify(object)
+            })
+            .then (data => data.text())
+            .then(data => {
+                console.log(data);
+                showThanksModal(message.succes);
+                statusMessage.remove();
+            })
+            .catch(() => {
+                showThanksModal(message.failrue);
+            })
+            .finally(() => {
+                form.reset();
+            })
 
         });
      }
@@ -287,7 +285,4 @@ window.addEventListener("load", () => {
 
      }
 });
-
-
-
 
