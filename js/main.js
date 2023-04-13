@@ -131,7 +131,7 @@ window.addEventListener("load", () => {
 
 //Menu
 
-    class MenuCard {
+    class MenuCard {                                                                                        //класс для создания карточки в меню
         constructor(src, alt, title, description, price, parentSelector, ...classes) {
             this.src = src;
             this.alt = alt;
@@ -140,11 +140,11 @@ window.addEventListener("load", () => {
             this.price = price;
             this.parent = document.querySelector(parentSelector);
             this.classes = classes;
-            this.transfer = 50;
-            this.changeToUAH();
+            this.transfer = 80;
+            this.changeToRUB();
         }
 
-        changeToUAH() {
+        changeToRUB() {
             this.price = this.price*this.transfer
         }
 
@@ -152,7 +152,7 @@ window.addEventListener("load", () => {
             const element = document.createElement('div');
             
             if (this.classes.length === 0) {
-                this.element = '.menu__item'
+                this.element = 'menu__item'
                 element.classList.add(this.element)
             } else {
                 this.classes.forEach(className => element.classList.add(className));
@@ -169,39 +169,25 @@ window.addEventListener("load", () => {
                 </div> 
             `;
             this.parent.append(element);
+        };
+    };
+
+    const getResource = async (url) => {                                                            //запрос данных из бд с карточками для меню
+        const res = await fetch(url);
+
+        if (!res.ok) {
+            throw new Error(`Could not fetch ${url}, status ${res.status}`);                        //поимка ошибки
         }
 
-    }
+        return await res.json();
+    };
 
-    new MenuCard(
-        "img/tabs/vegy.jpg",
-        "vegy",
-        'Меню "Фитнес"',
-        'Меню "Фитнес" - это новый подход к приготовлению блюд: больше свежих овощей и фруктов. Продукт активных и здоровых людей. Это абсолютно новый продукт с оптимальной ценой и высоким качеством!',
-        9,
-        '.menu .container',
-        'menu__item',
-    ).render();
-
-    new MenuCard(
-        "img/tabs/elite.jpg",
-        "elite",
-        'Меню “Премиум”',
-        'В меню “Премиум” мы     всячески  полезно       используем не только красивый дизайн упаковки, но и качественное исполнение блюд. Красная рыба, морепродукты, фрукты - ресторанное меню без похода в ресторан!',
-        20,
-        '.menu .container',
-        'menu__item'
-    ).render();
-
-    new MenuCard(
-        "img/tabs/post.jpg",
-        "post",
-        'Меню "Постное"',
-        'Меню “Постное” - это тщательный подбор ингредиентов: полное отсутствие продуктов животного происхождения, молоко из миндаля, овса, кокоса или гречки, правильное количество белков за счет тофу и импортных вегетарианских стейков.',
-        18,
-        '.menu .container',
-        'menu__item'
-    ).render();
+    getResource('http://localhost:3000/menu')
+        .then(data => {
+            data.forEach(({img, altimg, title, descr, price}) => {                                  
+                new MenuCard(img, altimg, title, descr, price, '.menu .container').render();
+            });
+        });
 
      //Forms
 
@@ -213,38 +199,39 @@ window.addEventListener("load", () => {
         failrue: 'Что-то пошло не так...'
     };
     
-    forms.forEach(item => {                 //привязываю обработчик  к формам
-        postData(item);
-    })
+    forms.forEach(item => {                 //привязывается обработчик  к формам
+        bindPostData(item);
+    });
 
-    function postData (form) {
+    const postData = async (url, data) => {
+        const res = await fetch(url, {                                                      //функция отправки данных в бд
+            method: 'POST',
+            headers: {
+                'Content-type': 'application/json'
+            },
+            body: data
+        });
+
+        return await res.json();
+    }
+
+    function bindPostData (form) {
         form.addEventListener('submit', (e) => {
-            e.preventDefault();                           //обнуляю поведение браузера при отправке формы
+            e.preventDefault();                           //обнуляется поведение браузера при отправке формы
 
-            const statusMessage = document.createElement('img');         //создаю ответ для пользователя
+            const statusMessage = document.createElement('img');         //создается ответ для пользователя
             statusMessage.src = message.loading;
             statusMessage.style.cssText = `
                 display: block;
                 margin: 0 auto;
             `;
-            form.insertAdjacentElement('afterend', statusMessage);                                //добавляю ответ к форме
+            form.insertAdjacentElement('afterend', statusMessage);                                //добавляется ответ к форме
 
-            
             const formData = new FormData (form);
 
-            const object = {};
-            formData.forEach( (value,key) => {                 //перевод в formdata в json
-                object[key] = value;
-            });
+            const json = JSON.stringify(Object.fromEntries(formData.entries()));              //из formData в json
 
-            fetch('server.php', {
-                method: 'POST',
-                header: {
-                    'Content-type': 'application/json'
-                },
-                body: JSON.stringify(object)
-            })
-            .then (data => data.text())
+            postData('http://localhost:3000/requests', json)                    //отправляю данные с формы в базу данных
             .then(data => {
                 console.log(data);
                 showThanksModal(message.succes);
@@ -261,12 +248,12 @@ window.addEventListener("load", () => {
      }
 
      function showThanksModal(message) {
-        const prevModalDialog = document.querySelector('.modal__dialog');
+        const prevModalDialog = document.querySelector('.modal__dialog');           
 
-        prevModalDialog.classList.add('hide');
+        prevModalDialog.classList.add('hide');                                      //скрывается модальное окно ввода данных
         openModal();
 
-        const thanksModal = document.createElement('div');
+        const thanksModal = document.createElement('div');                          //формируется новое модальное окно ответа пользователю
         thanksModal.classList.add('modal__dialog');
         thanksModal.innerHTML = `
             <div class="modal__content">
@@ -275,14 +262,133 @@ window.addEventListener("load", () => {
             </div>
         `;
 
-        document.querySelector('.modal').append(thanksModal);
+        document.querySelector('.modal').append(thanksModal);                           
         setTimeout(() => {
             thanksModal.remove();
             prevModalDialog.classList.add('show');
             prevModalDialog.classList.remove('hide');
             closeModal();
         }, 4000);
+    }
 
-     }
+    //slider
+
+    const slides = document.querySelectorAll('.offer__slide'),
+          slider = document.querySelector('.offer__slider'),
+          prev = document.querySelector('.offer__slider-prev'),
+          next = document.querySelector('.offer__slider-next'),
+          total = document.querySelector('#total'),
+          current = document.querySelector('#current'),
+          slidesWrapper = document.querySelector('.offer__slider-wrapper'),
+          slidesField = document.querySelector('.offer__slider-inner'),
+          width = window.getComputedStyle(slidesWrapper).width;
+    let slideIndex = 1;
+    let offset = 0;
+
+    if (slides.length < 10){
+        total.textContent = `0${slides.length}`;
+        current.textContent = `0${slideIndex}`;
+    } else {
+        total.textContent = slides.length;
+        current.textContent = slideIndex;
+    }
+
+    slidesField.style.width = 100 * slides.length + '%';
+    slidesField.style.display = 'flex';
+    slidesField.style.transition = '0.5s all';
+    
+    slidesWrapper.style.overflow = 'hidden';
+
+    slides.forEach(slide => {
+        slide.style.width = width;
+    });
+
+    slider.style.position = 'relative';
+
+    const indicators = document.createElement('ol'),
+          dots = [];
+    indicators.classList.add('carousel-indicators');
+    slider.append(indicators);
+
+    for (let i = 0; i < slides.length; i++) {
+        const dot = document.createElement('li');
+        dot.setAttribute('data-slide-to', i + 1);
+        dot.classList.add('dot');
+        if (i == 0) {
+            dot.style.opacity = 1;
+        }
+        indicators.append(dot);
+        dots.push(dot);
+    }
+
+    const currentIndex = () => {
+        if (slides.length < 10) {
+            current.textContent = `0${slideIndex}`;
+        } else {
+            current.textContent = slideIndex;
+        }
+    };
+
+    const currentDot = () => {
+        dots.forEach(dot => dot.style.opacity = '.5');
+        dots[slideIndex - 1].style.opacity = 1;
+    }
+
+    next.addEventListener('click', () => {
+        if (offset == +width.slice(0, width.length - 2) * (slides.length - 1)){
+            offset = 0;
+        } else {
+            offset += +width.slice(0, width.length - 2);                  //сдвигается на ширину слайда вправо
+        }
+
+        slidesField.style.transform = `translateX(-${offset}px)`;
+
+        if (slideIndex == slides.length) {
+            slideIndex = 1;
+        } else {
+            slideIndex++;
+        }
+
+        currentIndex();
+
+        currentDot();
+    });
+
+    prev.addEventListener('click', () => {
+        if (offset == 0){
+             offset = +width.slice(0, width.length - 2) * (slides.length - 1);
+        } else {
+            offset -= +width.slice(0, width.length - 2);                  //сдвигается на ширину слайда влево
+        }
+
+        slidesField.style.transform = `translateX(-${offset}px)`;
+
+        if (slideIndex == 1) {
+            slideIndex = slides.length;
+        } else {
+            slideIndex--;
+        }
+
+        currentIndex();
+
+        currentDot();
+    });
+
+    dots.forEach(dot => {
+        dot.addEventListener('click', e => {
+            const slideTo = e.target.getAttribute('data-slide-to');
+
+            slideIndex = slideTo;
+            offset = offset = +width.slice(0, width.length - 2) * (slideTo - 1);
+
+            slidesField.style.transform = `translateX(-${offset}px)`;
+
+            currentIndex();
+
+            currentDot();
+        })
+    })
+    
 });
+
 
